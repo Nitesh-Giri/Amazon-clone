@@ -4,6 +4,7 @@ pipeline {
     environment {
         DOCKER_IMAGE = 'amazon-clone'
         DOCKER_TAG = "${BUILD_NUMBER}"
+        CONTAINER_NAME = "amazon-clone-${BUILD_NUMBER}"
     }
     
     stages {
@@ -49,11 +50,20 @@ pipeline {
         
         stage('Deploy') {
             steps {
-                // Stop and remove existing container
-                sh "docker-compose down || true"
-                
-                // Start new container
-                sh "docker-compose up -d"
+                script {
+                    // Stop and remove existing containers
+                    sh '''
+                        # Stop any running containers with the same name
+                        docker stop amazon-clone || true
+                        docker rm amazon-clone || true
+                        
+                        # Remove old containers
+                        docker-compose down --remove-orphans || true
+                        
+                        # Start new container with unique name
+                        CONTAINER_NAME=${CONTAINER_NAME} docker-compose up -d
+                    '''
+                }
             }
         }
     }
@@ -61,13 +71,24 @@ pipeline {
     post {
         always {
             // Clean up
-            sh "docker system prune -f"
+            sh '''
+                # Remove old containers and images
+                docker system prune -f
+                
+                # Remove old containers with the same name pattern
+                docker ps -a | grep "amazon-clone-" | grep -v "${CONTAINER_NAME}" | awk '{print $1}' | xargs -r docker rm -f
+            '''
         }
         success {
             echo 'Pipeline completed successfully!'
         }
         failure {
             echo 'Pipeline failed!'
+            // Clean up on failure
+            sh '''
+                docker-compose down --remove-orphans || true
+                docker system prune -f
+            '''
         }
     }
 } 

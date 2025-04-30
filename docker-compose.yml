@@ -3,11 +3,11 @@ services:
     build: .
     ports:
       - "8084:80"
-    container_name: amazon-clone
-    restart: unless-stopped
     volumes:
       - ./public:/usr/share/nginx/html
       - ./assets:/usr/share/nginx/html/assets
+    container_name: ${CONTAINER_NAME:-amazon-clone}
+    restart: unless-stopped
     networks:
       - app-network
     user: root
