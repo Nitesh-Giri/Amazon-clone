@@ -1,0 +1,17 @@
+services:
+  web:
+    build: .
+    ports:
+      - "8084:80"
+    container_name: amazon-clone
+    restart: unless-stopped
+    volumes:
+      - ./public:/usr/share/nginx/html
+      - ./assets:/usr/share/nginx/html/assets
+    networks:
+      - app-network
+    user: root
+
+networks:
+  app-network:
+    driver: bridge 
